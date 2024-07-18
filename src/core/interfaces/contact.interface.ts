@@ -1,4 +1,4 @@
-export interface IUserContact {
+export interface IUserResponse {
   primaryContactId: number;
   emails: string[];
   phoneNumbers: string[];

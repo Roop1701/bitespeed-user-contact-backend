@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Res } from '@nestjs/common';
+import { Body, Controller, Logger, Post, Res } from '@nestjs/common';
 import { UserService } from './user.service';
 import { ContactDto } from './dto/user.dto';
 
@@ -6,8 +6,18 @@ import { ContactDto } from './dto/user.dto';
 export class UserController {
   constructor(private readonly userService: UserService) {}
   @Post('/identify')
-  async getContact(@Body() data: ContactDto): Promise<any> {
-    let getContactResponse = this.userService.getContact(data);
-    return getContactResponse;
+  async getContact(
+    @Body() contactDto: ContactDto,
+    @Res() response,
+  ): Promise<any> {
+    const { phoneNumber, email } = contactDto;
+    if (!phoneNumber && !email) {
+      return response.status(500).json({
+        statusCode: 500,
+        message: 'Either phonenumber or email should be given',
+      });
+    }
+    let getContactResponse = await this.userService.getContact(contactDto);
+    return response.status(200).json(getContactResponse);
   }
 }
