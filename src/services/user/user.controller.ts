@@ -18,6 +18,6 @@ export class UserController {
       });
     }
     let getContactResponse = await this.userService.getContact(contactDto);
-    return response.status(200).json(getContactResponse);
+    return response.status(200).json({ contact: getContactResponse });
   }
 }

@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { AppConstants } from 'src/core/constants/app.constants';
+import { IUserResponse } from 'src/core/interfaces/contact.interface';
 import { Contact } from 'src/schema/contact.schema';
 
 @Injectable()
@@ -112,15 +113,80 @@ export class ContactDAO {
     return;
   }
 
+  // To get contact by Id
+  async getContactById(id: number): Promise<Contact | null> {
+    let response = await this.contactModel.findOne<Contact>({ where: { id } });
+    return response.dataValues;
+  }
+
+  //Helper function to format the respons in required format
+  async responseHandler(
+    primaryContact: Contact,
+    secondaryContact?: Contact,
+  ): Promise<IUserResponse | null> {
+    let responseObj: IUserResponse = {
+      primaryContactId: null,
+      emails: [],
+      phoneNumbers: [],
+      secondaryContactIds: [],
+    };
+
+    if (!secondaryContact && primaryContact.linkPrecedence == 'primary') {
+      responseObj.primaryContactId = primaryContact.id;
+      responseObj.emails = [primaryContact.email];
+      responseObj.phoneNumbers = [primaryContact.phoneNumber];
+    } else if (primaryContact && primaryContact.linkPrecedence == 'secondary') {
+      let fetchLinkedContact = await this.getContactById(
+        primaryContact.linkedId,
+      );
+      let linkEmail = [];
+      let linkPhone = [];
+      linkEmail?.push(fetchLinkedContact.email);
+      if (primaryContact?.email != fetchLinkedContact?.email) {
+        linkEmail.push(primaryContact?.email);
+      }
+      linkPhone?.push(fetchLinkedContact?.phoneNumber);
+      if (primaryContact?.phoneNumber != fetchLinkedContact?.phoneNumber) {
+        linkPhone?.push(primaryContact?.phoneNumber);
+      }
+      responseObj.primaryContactId = fetchLinkedContact.id;
+      responseObj.emails = linkEmail;
+      responseObj.phoneNumbers = linkPhone;
+      responseObj.secondaryContactIds = [primaryContact.id];
+    } else if (secondaryContact && primaryContact) {
+      responseObj.primaryContactId = primaryContact.id;
+      if (secondaryContact?.email != primaryContact?.email) {
+        let email = [];
+        email.push(secondaryContact?.email);
+        email.push(primaryContact?.email);
+        responseObj.emails = email;
+      } else {
+        responseObj.emails = [primaryContact.email];
+      }
+      if (secondaryContact?.phoneNumber != primaryContact?.phoneNumber) {
+        let phoneNumber = [];
+        phoneNumber.push(secondaryContact?.phoneNumber);
+        phoneNumber.push(primaryContact?.phoneNumber);
+        responseObj.phoneNumbers = phoneNumber;
+      } else {
+        responseObj.phoneNumbers = [primaryContact.phoneNumber];
+      }
+      responseObj.secondaryContactIds = [secondaryContact.id];
+    }
+    return responseObj;
+  }
+
   //Main Handler to indentify the contact details and orchestrate the updation flow of contacts
   async identifyContact(
     userContact: Partial<Contact>,
-  ): Promise<Contact | null> {
-    const { email, phoneNumber } = userContact;
+  ): Promise<IUserResponse | any> {
+    let { email, phoneNumber } = userContact;
+    email = email ? email : '';
+    phoneNumber = phoneNumber ? phoneNumber : '';
 
     if (!email && !phoneNumber) {
       throw new Error(
-        'Email and phone number must be provided for identification.',
+        'Either Email or phone number must be provided for identification.',
       );
     }
 
@@ -131,17 +197,24 @@ export class ContactDAO {
 
     if (existingContact) {
       console.log('Existing Contact');
-      return existingContact.dataValues;
+      let response = existingContact.dataValues;
+      return await this.responseHandler(response);
     }
 
     let emailContacts = await this.findContactByEmail(email);
     let phoneContacts = await this.findContactByPhone(phoneNumber);
-    emailContacts = emailContacts.map((data) => data.dataValues);
-    phoneContacts = phoneContacts.map((data) => data.dataValues);
+
+    emailContacts = emailContacts
+      ? emailContacts.map((data) => data.dataValues)
+      : [];
+    phoneContacts = phoneContacts
+      ? phoneContacts.map((data) => data.dataValues)
+      : [];
 
     if (emailContacts.length == 0 && phoneContacts.length == 0) {
       console.log('New contact');
-      return await this.createContact(userContact);
+      let response = await this.createContact(userContact);
+      return await this.responseHandler(response);
     }
 
     if (emailContacts.length > 0 && phoneContacts.length > 0) {
@@ -177,7 +250,8 @@ export class ContactDAO {
         primaryContact,
         userContact,
       );
-      return response;
+      console.log('Primary contact', primaryContact);
+      return await this.responseHandler(primaryContact[0], response);
     }
   }
 }
