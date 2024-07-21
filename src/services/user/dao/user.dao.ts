@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { Op } from 'sequelize';
 import { AppConstants } from 'src/core/constants/app.constants';
 import { IUserResponse } from 'src/core/interfaces/contact.interface';
 import { Contact } from 'src/schema/contact.schema';
@@ -176,6 +177,51 @@ export class ContactDAO {
     return responseObj;
   }
 
+  //Query for post update response fetching
+  async fetchUserContactQuery(
+    userConatct: Partial<Contact>,
+  ): Promise<IUserResponse | null> {
+    const { email, phoneNumber } = userConatct;
+    let responseObj: IUserResponse = {
+      primaryContactId: null,
+      emails: [],
+      phoneNumbers: [],
+      secondaryContactIds: [],
+    };
+    let queryResponse = await this.contactModel.findAll<Contact>({
+      where: {
+        [Op.or]: [{ email: email }, { phoneNumber: phoneNumber }],
+      },
+      order: [['id', 'ASC']],
+    });
+
+    queryResponse = queryResponse
+      ? queryResponse.map((data) => data.dataValues)
+      : [];
+    const primaryObject = queryResponse.find(
+      (obj) => obj.linkPrecedence === 'primary',
+    );
+    responseObj.primaryContactId = primaryObject.id;
+    let emails = [primaryObject.email];
+    let phones = [primaryObject.phoneNumber];
+    let secondaryId = [];
+    queryResponse.map((data) => {
+      if (data.linkPrecedence != 'primary') {
+        secondaryId.push(data.id);
+        if (!emails.includes(data.email)) {
+          emails.push(data.email);
+        }
+        if (!phones.includes(data.phoneNumber)) {
+          phones.push(data.phoneNumber);
+        }
+      }
+    });
+    responseObj.emails = emails;
+    responseObj.phoneNumbers = phones;
+    responseObj.secondaryContactIds = secondaryId;
+    return responseObj;
+  }
+
   //Main Handler to indentify the contact details and orchestrate the updation flow of contacts
   async identifyContact(
     userContact: Partial<Contact>,
@@ -231,11 +277,12 @@ export class ContactDAO {
               sortedPhoneContacts[0].linkPrecedence === 'primary'
             ? sortedPhoneContacts[0]
             : sortedEmailContacts[0];
-      const response = await this.updatePrimaryContactToSecondary(
+      await this.updatePrimaryContactToSecondary(
         primaryContact,
         sortedEmailContacts,
         sortedPhoneContacts,
       );
+      let response = await this.fetchUserContactQuery(userContact);
       return response;
     }
 
@@ -250,7 +297,6 @@ export class ContactDAO {
         primaryContact,
         userContact,
       );
-      console.log('Primary contact', primaryContact);
       return await this.responseHandler(primaryContact[0], response);
     }
   }

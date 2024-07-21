@@ -13,7 +13,7 @@ export class UserService {
     this.logger.log('Invoke service get contact');
     let getContactResponse: any;
     getContactResponse = await this.contactDAO.identifyContact(userConatct);
-    this.logger.log('Create user response', getContactResponse);
+    this.logger.log('Fetch user response', JSON.stringify(getContactResponse));
     return getContactResponse;
   };
 }
