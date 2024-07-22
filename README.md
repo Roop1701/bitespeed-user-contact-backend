@@ -4,7 +4,7 @@ ec2-13-201-16-121.ap-south-1.compute.amazonaws.com:3000/api/v1/user/identify
 ```
 
 ##Block Diagram
-![Block-Diagram](https://drive.google.com/file/d/1ETTQ9NM_S2MghflE9UmbXRMac3qX0Vaa/view?usp=sharing)
+[Block-Diagram](https://drive.google.com/file/d/1ETTQ9NM_S2MghflE9UmbXRMac3qX0Vaa/view?usp=sharing)
 
 
 ## Installation
