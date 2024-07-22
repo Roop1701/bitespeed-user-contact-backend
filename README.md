@@ -1,5 +1,7 @@
-##API Endpoint
+## API Endpoint
+```bash
 ec2-13-201-16-121.ap-south-1.compute.amazonaws.com:3000/api/v1/user/identify
+```
 
 ## Installation
 
