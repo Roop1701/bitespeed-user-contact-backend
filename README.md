@@ -4,7 +4,7 @@ ec2-13-201-16-121.ap-south-1.compute.amazonaws.com:3000/api/v1/user/identify
 ```
 
 ##Block Diagram
-<iframe src="[https://example.com](https://drive.google.com/file/d/1VRr6nz8TDZ4RFPF3e6kgwlwnocthPbGs/view?usp=sharing)" width="600" height="400"></iframe>
+<iframe src="https://drive.google.com/file/d/1VRr6nz8TDZ4RFPF3e6kgwlwnocthPbGs/view?usp=sharing" width="600" height="400"></iframe>
 
 
 ## Installation
